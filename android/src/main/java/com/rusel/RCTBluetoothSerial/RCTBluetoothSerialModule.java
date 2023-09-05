@@ -25,11 +25,17 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
+import com.facebook.react.modules.core.PermissionListener;
+import com.facebook.react.modules.core.PermissionAwareActivity;
+import androidx.core.content.ContextCompat;
+import androidx.core.app.ActivityCompat;
+import android.Manifest;
+import android.content.pm.PackageManager;
 
 import static com.rusel.RCTBluetoothSerial.RCTBluetoothSerialPackage.TAG;
 
 @SuppressWarnings("unused")
-public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule implements ActivityEventListener, LifecycleEventListener {
+public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule implements ActivityEventListener, LifecycleEventListener, PermissionListener  {
 
     // Debugging
     private static final boolean D = true;
@@ -58,6 +64,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     private Promise mConnectedPromise;
     private Promise mDeviceDiscoveryPromise;
     private Promise mPairDevicePromise;
+    private Promise mBluetoothPermissionPromise;
     private String delimiter = "";
 
     public RCTBluetoothSerialModule(ReactApplicationContext reactContext) {
@@ -89,6 +96,21 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     @Override
     public String getName() {
         return "RCTBluetoothSerial";
+    }
+
+    @Override
+    public boolean onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+
+        if(requestCode == 2) {
+            if(mBluetoothPermissionPromise != null) {
+              mBluetoothPermissionPromise.resolve(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED);
+              mBluetoothPermissionPromise = null;
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     @Override
@@ -177,6 +199,47 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
                 onError(e);
             }
         }
+    }
+
+    @ReactMethod
+    /**
+     * Check permissions
+     */
+    public void checkPermissions(Promise promise) {
+         Activity activity = getCurrentActivity();
+
+         if (
+            ContextCompat.checkSelfPermission(
+                activity, 
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) == PackageManager.PERMISSION_DENIED || 
+            ContextCompat.checkSelfPermission(
+                activity, 
+                Manifest.permission.BLUETOOTH_SCAN
+            ) == PackageManager.PERMISSION_DENIED
+          ) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                promise.resolve(false);
+                return;
+            }
+         }
+        
+         promise.resolve(true);
+    }
+
+    @ReactMethod
+    /**
+     * Request permissions
+     */
+    public void requestPermissions(Promise promise) {
+         PermissionAwareActivity activity = (PermissionAwareActivity) getCurrentActivity();
+
+         mBluetoothPermissionPromise = promise;
+
+         activity.requestPermissions(new String[]{ 
+            Manifest.permission.BLUETOOTH_CONNECT, 
+            Manifest.permission.BLUETOOTH_SCAN
+        }, 2, this);
     }
 
     @ReactMethod
