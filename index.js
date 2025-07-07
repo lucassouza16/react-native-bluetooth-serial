@@ -1,14 +1,14 @@
 const ReactNative = require('react-native')
 const { Buffer } = require('buffer')
 const { NativeModules, NativeEventEmitter } = ReactNative
-const BluetoothSerial = NativeModules.BluetoothSerial
+const RCTBluetoothSerial = NativeModules.RCTBluetoothSerial
 
 /**
  * Listen for available events
  * @param  {String} eventName Name of event one of connectionSuccess, connectionLost, data, rawData
  * @param  {Function} handler Event handler
  */
-BluetoothSerial.on = (eventName, handler) => {
+RCTBluetoothSerial.on = (eventName, handler) => {
   NativeEventEmitter.addListener(eventName, handler)
 }
 
@@ -17,7 +17,7 @@ BluetoothSerial.on = (eventName, handler) => {
  * @param  {String} eventName Name of event one of connectionSuccess, connectionLost, data, rawData
  * @param  {Function} handler Event handler
  */
-BluetoothSerial.removeListener = (eventName, handler) => {
+RCTBluetoothSerial.removeListener = (eventName, handler) => {
   NativeEventEmitter.removeListener(eventName, handler)
 }
 
@@ -27,11 +27,11 @@ BluetoothSerial.removeListener = (eventName, handler) => {
  * @param  {Buffer|String} data
  * @return {Promise<Boolean>}
  */
-BluetoothSerial.write = (data) => {
+RCTBluetoothSerial.write = (data) => {
   if (typeof data === 'string') {
     data = new Buffer(data)
   }
-  return BluetoothSerial.writeToDevice(data.toString('base64'))
+  return RCTBluetoothSerial.writeToDevice(data.toString('base64'))
 }
 
-module.exports = BluetoothSerial
+module.exports = RCTBluetoothSerial
